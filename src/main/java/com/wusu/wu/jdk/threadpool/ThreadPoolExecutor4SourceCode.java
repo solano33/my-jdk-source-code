@@ -15,8 +15,16 @@ import java.util.*;
  */
 public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
 
+    public static void main(String[] args) {
+        System.out.println(CAPACITY);
+    }
+
     private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));
+
+    // 29：用来左移用的，也就是ctl高3位表示线程池状态
     private static final int COUNT_BITS = Integer.SIZE - 3;
+
+    // 1FFF FFFF：低29位全1，用于获取线程池中线程的最大数量
     private static final int CAPACITY = (1 << COUNT_BITS) - 1;
 
     // runState is stored in the high-order bits
@@ -31,6 +39,9 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
         return c & ~CAPACITY;
     }
 
+    /**
+     * 获取线程池中线程的数量
+     */
     private static int workerCountOf(int c) {
         return c & CAPACITY;
     }
@@ -193,8 +204,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
     /**
      * The default rejected execution handler
      */
-    private static final RejectedExecutionHandler4SourceCode defaultHandler =
-            new AbortPolicy();
+    private static final RejectedExecutionHandler4SourceCode defaultHandler = new AbortPolicy();
 
     /**
      * Permission required for callers of shutdown and shutdownNow.
@@ -216,8 +226,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * and failure to actually interrupt will merely delay response to
      * configuration changes so is not handled exceptionally.
      */
-    private static final RuntimePermission shutdownPerm =
-            new RuntimePermission("modifyThread");
+    private static final RuntimePermission shutdownPerm = new RuntimePermission("modifyThread");
 
     /* The context to be used when executing the finalizer, or null. */
     private final AccessControlContext acc;
@@ -238,9 +247,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * state to a negative value, and clear it upon start (in
      * runWorker).
      */
-    private final class Worker
-            extends AbstractQueuedSynchronizer
-            implements Runnable {
+    private final class Worker extends AbstractQueuedSynchronizer implements Runnable {
         /**
          * This class will never be serialized, but we provide a
          * serialVersionUID to suppress a javac warning.
@@ -342,9 +349,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
     private void advanceRunState(int targetState) {
         for (; ; ) {
             int c = ctl.get();
-            if (runStateAtLeast(c, targetState) ||
-                    ctl.compareAndSet(c, ctlOf(targetState, workerCountOf(c))))
-                break;
+            if (runStateAtLeast(c, targetState) || ctl.compareAndSet(c, ctlOf(targetState, workerCountOf(c)))) break;
         }
     }
 
@@ -361,9 +366,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
     final void tryTerminate() {
         for (; ; ) {
             int c = ctl.get();
-            if (isRunning(c) ||
-                    runStateAtLeast(c, TIDYING) ||
-                    (runStateOf(c) == SHUTDOWN && !workQueue.isEmpty()))
+            if (isRunning(c) || runStateAtLeast(c, TIDYING) || (runStateOf(c) == SHUTDOWN && !workQueue.isEmpty()))
                 return;
             if (workerCountOf(c) != 0) { // Eligible to terminate
                 interruptIdleWorkers(ONLY_ONE);
@@ -464,8 +467,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
                         w.unlock();
                     }
                 }
-                if (onlyOne)
-                    break;
+                if (onlyOne) break;
             }
         } finally {
             mainLock.unlock();
@@ -526,8 +528,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
         q.drainTo(taskList);
         if (!q.isEmpty()) {
             for (Runnable r : q.toArray(new Runnable[0])) {
-                if (q.remove(r))
-                    taskList.add(r);
+                if (q.remove(r)) taskList.add(r);
             }
         }
         return taskList;
@@ -569,22 +570,14 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
             int rs = runStateOf(c);
 
             // Check if queue empty only if necessary.
-            if (rs >= SHUTDOWN &&
-                    !(rs == SHUTDOWN &&
-                            firstTask == null &&
-                            !workQueue.isEmpty()))
-                return false;
+            if (rs >= SHUTDOWN && !(rs == SHUTDOWN && firstTask == null && !workQueue.isEmpty())) return false;
 
             for (; ; ) {
                 int wc = workerCountOf(c);
-                if (wc >= CAPACITY ||
-                        wc >= (core ? corePoolSize : maximumPoolSize))
-                    return false;
-                if (compareAndIncrementWorkerCount(c))
-                    break retry;
+                if (wc >= CAPACITY || wc >= (core ? corePoolSize : maximumPoolSize)) return false;
+                if (compareAndIncrementWorkerCount(c)) break retry;
                 c = ctl.get();  // Re-read ctl
-                if (runStateOf(c) != rs)
-                    continue retry;
+                if (runStateOf(c) != rs) continue retry;
                 // else CAS failed due to workerCount change; retry inner loop
             }
         }
@@ -604,14 +597,12 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
                     // shut down before lock acquired.
                     int rs = runStateOf(ctl.get());
 
-                    if (rs < SHUTDOWN ||
-                            (rs == SHUTDOWN && firstTask == null)) {
+                    if (rs < SHUTDOWN || (rs == SHUTDOWN && firstTask == null)) {
                         if (t.isAlive()) // precheck that t is startable
                             throw new IllegalThreadStateException();
                         workers.add(w);
                         int s = workers.size();
-                        if (s > largestPoolSize)
-                            largestPoolSize = s;
+                        if (s > largestPoolSize) largestPoolSize = s;
                         workerAdded = true;
                     }
                 } finally {
@@ -623,8 +614,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
                 }
             }
         } finally {
-            if (!workerStarted)
-                addWorkerFailed(w);
+            if (!workerStarted) addWorkerFailed(w);
         }
         return workerStarted;
     }
@@ -640,8 +630,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();
         try {
-            if (w != null)
-                workers.remove(w);
+            if (w != null) workers.remove(w);
             decrementWorkerCount();
             tryTerminate();
         } finally {
@@ -681,10 +670,8 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
         if (runStateLessThan(c, STOP)) {
             if (!completedAbruptly) {
                 int min = allowCoreThreadTimeOut ? 0 : corePoolSize;
-                if (min == 0 && !workQueue.isEmpty())
-                    min = 1;
-                if (workerCountOf(c) >= min)
-                    return; // replacement not needed
+                if (min == 0 && !workQueue.isEmpty()) min = 1;
+                if (workerCountOf(c) >= min) return; // replacement not needed
             }
             addWorker(null, false);
         }
@@ -725,19 +712,14 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
             // Are workers subject to culling?
             boolean timed = allowCoreThreadTimeOut || wc > corePoolSize;
 
-            if ((wc > maximumPoolSize || (timed && timedOut))
-                    && (wc > 1 || workQueue.isEmpty())) {
-                if (compareAndDecrementWorkerCount(c))
-                    return null;
+            if ((wc > maximumPoolSize || (timed && timedOut)) && (wc > 1 || workQueue.isEmpty())) {
+                if (compareAndDecrementWorkerCount(c)) return null;
                 continue;
             }
 
             try {
-                Runnable r = timed ?
-                        workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
-                        workQueue.take();
-                if (r != null)
-                    return r;
+                Runnable r = timed ? workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) : workQueue.take();
+                if (r != null) return r;
                 timedOut = true;
             } catch (InterruptedException retry) {
                 timedOut = false;
@@ -801,10 +783,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
                 // if not, ensure thread is not interrupted.  This
                 // requires a recheck in second case to deal with
                 // shutdownNow race while clearing interrupt
-                if ((runStateAtLeast(ctl.get(), STOP) ||
-                        (Thread.interrupted() &&
-                                runStateAtLeast(ctl.get(), STOP))) &&
-                        !wt.isInterrupted())
+                if ((runStateAtLeast(ctl.get(), STOP) || (Thread.interrupted() && runStateAtLeast(ctl.get(), STOP))) && !wt.isInterrupted())
                     wt.interrupt();
                 try {
                     beforeExecute(wt, task);
@@ -861,13 +840,8 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      *                                  {@code maximumPoolSize < corePoolSize}
      * @throws NullPointerException     if {@code workQueue} is null
      */
-    public ThreadPoolExecutor4SourceCode(int corePoolSize,
-                                         int maximumPoolSize,
-                                         long keepAliveTime,
-                                         TimeUnit unit,
-                                         BlockingQueue<Runnable> workQueue) {
-        this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
-                Executors.defaultThreadFactory(), defaultHandler);
+    public ThreadPoolExecutor4SourceCode(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
+        this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, Executors.defaultThreadFactory(), defaultHandler);
     }
 
     /**
@@ -895,14 +869,8 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * @throws NullPointerException     if {@code workQueue}
      *                                  or {@code threadFactory} is null
      */
-    public ThreadPoolExecutor4SourceCode(int corePoolSize,
-                                         int maximumPoolSize,
-                                         long keepAliveTime,
-                                         TimeUnit unit,
-                                         BlockingQueue<Runnable> workQueue,
-                                         ThreadFactory threadFactory) {
-        this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
-                threadFactory, defaultHandler);
+    public ThreadPoolExecutor4SourceCode(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory) {
+        this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, defaultHandler);
     }
 
     /**
@@ -930,14 +898,8 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * @throws NullPointerException     if {@code workQueue}
      *                                  or {@code handler} is null
      */
-    public ThreadPoolExecutor4SourceCode(int corePoolSize,
-                                         int maximumPoolSize,
-                                         long keepAliveTime,
-                                         TimeUnit unit,
-                                         BlockingQueue<Runnable> workQueue,
-                                         RejectedExecutionHandler4SourceCode handler) {
-        this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
-                Executors.defaultThreadFactory(), handler);
+    public ThreadPoolExecutor4SourceCode(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, RejectedExecutionHandler4SourceCode handler) {
+        this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, Executors.defaultThreadFactory(), handler);
     }
 
     /**
@@ -967,23 +929,11 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * @throws NullPointerException     if {@code workQueue}
      *                                  or {@code threadFactory} or {@code handler} is null
      */
-    public ThreadPoolExecutor4SourceCode(int corePoolSize,
-                                         int maximumPoolSize,
-                                         long keepAliveTime,
-                                         TimeUnit unit,
-                                         BlockingQueue<Runnable> workQueue,
-                                         ThreadFactory threadFactory,
-                                         RejectedExecutionHandler4SourceCode handler) {
-        if (corePoolSize < 0 ||
-                maximumPoolSize <= 0 ||
-                maximumPoolSize < corePoolSize ||
-                keepAliveTime < 0)
+    public ThreadPoolExecutor4SourceCode(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, RejectedExecutionHandler4SourceCode handler) {
+        if (corePoolSize < 0 || maximumPoolSize <= 0 || maximumPoolSize < corePoolSize || keepAliveTime < 0)
             throw new IllegalArgumentException();
-        if (workQueue == null || threadFactory == null || handler == null)
-            throw new NullPointerException();
-        this.acc = System.getSecurityManager() == null ?
-                null :
-                AccessController.getContext();
+        if (workQueue == null || threadFactory == null || handler == null) throw new NullPointerException();
+        this.acc = System.getSecurityManager() == null ? null : AccessController.getContext();
         this.corePoolSize = corePoolSize;
         this.maximumPoolSize = maximumPoolSize;
         this.workQueue = workQueue;
@@ -993,56 +943,29 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
     }
 
     /**
-     * Executes the given task sometime in the future.  The task
-     * may execute in a new thread or in an existing pooled thread.
-     * <p>
-     * If the task cannot be submitted for execution, either because this
-     * executor has been shutdown or because its capacity has been reached,
-     * the task is handled by the current {@code RejectedExecutionHandler}.
      *
-     * @param command the task to execute
-     * @throws RejectedExecutionException at discretion of
-     *                                    {@code RejectedExecutionHandler}, if the task
-     *                                    cannot be accepted for execution
-     * @throws NullPointerException       if {@code command} is null
      */
     public void execute(Runnable command) {
-        if (command == null)
-            throw new NullPointerException();
+        if (command == null) throw new NullPointerException();
         /*
-         * Proceed in 3 steps:
-         *
-         * 1. If fewer than corePoolSize threads are running, try to
-         * start a new thread with the given command as its first
-         * task.  The call to addWorker atomically checks runState and
-         * workerCount, and so prevents false alarms that would add
-         * threads when it shouldn't, by returning false.
-         *
-         * 2. If a task can be successfully queued, then we still need
-         * to double-check whether we should have added a thread
-         * (because existing ones died since last checking) or that
-         * the pool shut down since entry into this method. So we
-         * recheck state and if necessary roll back the enqueuing if
-         * stopped, or start a new thread if there are none.
-         *
-         * 3. If we cannot queue task, then we try to add a new
-         * thread.  If it fails, we know we are shut down or saturated
-         * and so reject the task.
+         * 分3个步骤进行：
+         * 1. 如果运行的线程数少于 corePoolSize，将创建新线程执行。
+         *      对 addWorker 的调用以原子方式检查 runState 和 workerCount，从而通过返回 false
+         *      来防止在不应该添加线程时添加线程的误报。
+         * 2. 如果一个任务可以成功排队，那么我们仍然需要仔细检查我们是否应该添加一个线程（因为现有的线程自上次检查以来就死了），
+         *      或者池在进入此方法后关闭了。因此，我们重新检查状态，并在必要时回滚排队（如果停止），或者启动一个新线程（如果没有）。
+         * 3.如果我们无法对任务进行排队，那么我们尝试添加一个新线程。如果它失败了，我们知道我们被关闭或饱和，所以拒绝这项任务。
          */
         int c = ctl.get();
         if (workerCountOf(c) < corePoolSize) {
-            if (addWorker(command, true))
-                return;
+            if (addWorker(command, true)) return;
             c = ctl.get();
         }
         if (isRunning(c) && workQueue.offer(command)) {
             int recheck = ctl.get();
-            if (!isRunning(recheck) && remove(command))
-                reject(command);
-            else if (workerCountOf(recheck) == 0)
-                addWorker(null, false);
-        } else if (!addWorker(command, false))
-            reject(command);
+            if (!isRunning(recheck) && remove(command)) reject(command);
+            else if (workerCountOf(recheck) == 0) addWorker(null, false);
+        } else if (!addWorker(command, false)) reject(command);
     }
 
     /**
@@ -1127,17 +1050,14 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
         return runStateAtLeast(ctl.get(), TERMINATED);
     }
 
-    public boolean awaitTermination(long timeout, TimeUnit unit)
-            throws InterruptedException {
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         long nanos = unit.toNanos(timeout);
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();
         try {
             for (; ; ) {
-                if (runStateAtLeast(ctl.get(), TERMINATED))
-                    return true;
-                if (nanos <= 0)
-                    return false;
+                if (runStateAtLeast(ctl.get(), TERMINATED)) return true;
+                if (nanos <= 0) return false;
                 nanos = termination.awaitNanos(nanos);
             }
         } finally {
@@ -1170,8 +1090,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * @see #getThreadFactory
      */
     public void setThreadFactory(ThreadFactory threadFactory) {
-        if (threadFactory == null)
-            throw new NullPointerException();
+        if (threadFactory == null) throw new NullPointerException();
         this.threadFactory = threadFactory;
     }
 
@@ -1193,8 +1112,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * @see #getRejectedExecutionHandler
      */
     public void setRejectedExecutionHandler(RejectedExecutionHandler4SourceCode handler) {
-        if (handler == null)
-            throw new NullPointerException();
+        if (handler == null) throw new NullPointerException();
         this.handler = handler;
     }
 
@@ -1220,12 +1138,10 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * @see #getCorePoolSize
      */
     public void setCorePoolSize(int corePoolSize) {
-        if (corePoolSize < 0)
-            throw new IllegalArgumentException();
+        if (corePoolSize < 0) throw new IllegalArgumentException();
         int delta = corePoolSize - this.corePoolSize;
         this.corePoolSize = corePoolSize;
-        if (workerCountOf(ctl.get()) > corePoolSize)
-            interruptIdleWorkers();
+        if (workerCountOf(ctl.get()) > corePoolSize) interruptIdleWorkers();
         else if (delta > 0) {
             // We don't really know how many new threads are "needed".
             // As a heuristic, prestart enough new workers (up to new
@@ -1233,8 +1149,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
             // queue, but stop if queue becomes empty while doing so.
             int k = Math.min(delta, workQueue.size());
             while (k-- > 0 && addWorker(null, true)) {
-                if (workQueue.isEmpty())
-                    break;
+                if (workQueue.isEmpty()) break;
             }
         }
     }
@@ -1258,8 +1173,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * @return {@code true} if a thread was started
      */
     public boolean prestartCoreThread() {
-        return workerCountOf(ctl.get()) < corePoolSize &&
-                addWorker(null, true);
+        return workerCountOf(ctl.get()) < corePoolSize && addWorker(null, true);
     }
 
     /**
@@ -1268,10 +1182,8 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      */
     void ensurePrestart() {
         int wc = workerCountOf(ctl.get());
-        if (wc < corePoolSize)
-            addWorker(null, true);
-        else if (wc == 0)
-            addWorker(null, false);
+        if (wc < corePoolSize) addWorker(null, true);
+        else if (wc == 0) addWorker(null, false);
     }
 
     /**
@@ -1283,8 +1195,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      */
     public int prestartAllCoreThreads() {
         int n = 0;
-        while (addWorker(null, true))
-            ++n;
+        while (addWorker(null, true)) ++n;
         return n;
     }
 
@@ -1325,8 +1236,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
             throw new IllegalArgumentException("Core threads must have nonzero keep alive times");
         if (value != allowCoreThreadTimeOut) {
             allowCoreThreadTimeOut = value;
-            if (value)
-                interruptIdleWorkers();
+            if (value) interruptIdleWorkers();
         }
     }
 
@@ -1343,11 +1253,9 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * @see #getMaximumPoolSize
      */
     public void setMaximumPoolSize(int maximumPoolSize) {
-        if (maximumPoolSize <= 0 || maximumPoolSize < corePoolSize)
-            throw new IllegalArgumentException();
+        if (maximumPoolSize <= 0 || maximumPoolSize < corePoolSize) throw new IllegalArgumentException();
         this.maximumPoolSize = maximumPoolSize;
-        if (workerCountOf(ctl.get()) > maximumPoolSize)
-            interruptIdleWorkers();
+        if (workerCountOf(ctl.get()) > maximumPoolSize) interruptIdleWorkers();
     }
 
     /**
@@ -1375,15 +1283,13 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
      * @see #getKeepAliveTime(TimeUnit)
      */
     public void setKeepAliveTime(long time, TimeUnit unit) {
-        if (time < 0)
-            throw new IllegalArgumentException();
+        if (time < 0) throw new IllegalArgumentException();
         if (time == 0 && allowsCoreThreadTimeOut())
             throw new IllegalArgumentException("Core threads must have nonzero keep alive times");
         long keepAliveTime = unit.toNanos(time);
         long delta = keepAliveTime - this.keepAliveTime;
         this.keepAliveTime = keepAliveTime;
-        if (delta < 0)
-            interruptIdleWorkers();
+        if (delta < 0) interruptIdleWorkers();
     }
 
     /**
@@ -1451,16 +1357,14 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
             Iterator<Runnable> it = q.iterator();
             while (it.hasNext()) {
                 Runnable r = it.next();
-                if (r instanceof Future<?> && ((Future<?>) r).isCancelled())
-                    it.remove();
+                if (r instanceof Future<?> && ((Future<?>) r).isCancelled()) it.remove();
             }
         } catch (ConcurrentModificationException fallThrough) {
             // Take slow path if we encounter interference during traversal.
             // Make copy for traversal and call remove for cancelled entries.
             // The slow path is more likely to be O(N*N).
             for (Object r : q.toArray())
-                if (r instanceof Future<?> && ((Future<?>) r).isCancelled())
-                    q.remove(r);
+                if (r instanceof Future<?> && ((Future<?>) r).isCancelled()) q.remove(r);
         }
 
         tryTerminate(); // In case SHUTDOWN and now empty
@@ -1479,8 +1383,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
         try {
             // Remove rare and surprising possibility of
             // isTerminated() && getPoolSize() > 0
-            return runStateAtLeast(ctl.get(), TIDYING) ? 0
-                    : workers.size();
+            return runStateAtLeast(ctl.get(), TIDYING) ? 0 : workers.size();
         } finally {
             mainLock.unlock();
         }
@@ -1498,8 +1401,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
         try {
             int n = 0;
             for (Worker w : workers)
-                if (w.isLocked())
-                    ++n;
+                if (w.isLocked()) ++n;
             return n;
         } finally {
             mainLock.unlock();
@@ -1537,8 +1439,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
             long n = completedTaskCount;
             for (Worker w : workers) {
                 n += w.completedTasks;
-                if (w.isLocked())
-                    ++n;
+                if (w.isLocked()) ++n;
             }
             return n + workQueue.size();
         } finally {
@@ -1586,23 +1487,14 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
             nworkers = workers.size();
             for (Worker w : workers) {
                 ncompleted += w.completedTasks;
-                if (w.isLocked())
-                    ++nactive;
+                if (w.isLocked()) ++nactive;
             }
         } finally {
             mainLock.unlock();
         }
         int c = ctl.get();
-        String rs = (runStateLessThan(c, SHUTDOWN) ? "Running" :
-                (runStateAtLeast(c, TERMINATED) ? "Terminated" :
-                        "Shutting down"));
-        return super.toString() +
-                "[" + rs +
-                ", pool size = " + nworkers +
-                ", active threads = " + nactive +
-                ", queued tasks = " + workQueue.size() +
-                ", completed tasks = " + ncompleted +
-                "]";
+        String rs = (runStateLessThan(c, SHUTDOWN) ? "Running" : (runStateAtLeast(c, TERMINATED) ? "Terminated" : "Shutting down"));
+        return super.toString() + "[" + rs + ", pool size = " + nworkers + ", active threads = " + nactive + ", queued tasks = " + workQueue.size() + ", completed tasks = " + ncompleted + "]";
     }
 
     /* Extension hooks */
@@ -1730,9 +1622,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
          * @throws RejectedExecutionException always
          */
         public void rejectedExecution(Runnable r, ThreadPoolExecutor4SourceCode e) {
-            throw new RejectedExecutionException("Task " + r.toString() +
-                    " rejected from " +
-                    e.toString());
+            throw new RejectedExecutionException("Task " + r.toString() + " rejected from " + e.toString());
         }
     }
 
