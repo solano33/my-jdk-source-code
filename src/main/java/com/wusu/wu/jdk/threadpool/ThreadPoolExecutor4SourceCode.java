@@ -27,7 +27,17 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
     // 1FFF FFFF：低29位全1，用于获取线程池中线程的最大数量
     private static final int CAPACITY = (1 << COUNT_BITS) - 1;
 
-    // runState is stored in the high-order bits
+    /**
+     * RUNNING：     接收新任务，执行队列中的任务
+     * SHUTDOWN：    不接收新任务，但是会执行队列中的任务
+     * STOP：        不接收新任务，中断所有线程执行，同时清空队列
+     * TIDYING：     所有任务中断，worker线程数为0，当线程池状态转为TIDYING时将调用 {@link #terminated()} 钩子方法
+     * TERMINATED：
+     *
+     *
+     * shutdown：不再接收新任务，但是会执行队列中的任务
+     * shutdownNow：不再接收新任务，中断所有线程执行，同时清空队列
+     */
     private static final int RUNNING = -1 << COUNT_BITS;
     private static final int SHUTDOWN = 0 << COUNT_BITS;
     private static final int STOP = 1 << COUNT_BITS;
@@ -378,6 +388,8 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
             try {
                 if (ctl.compareAndSet(c, ctlOf(TIDYING, 0))) {
                     try {
+
+                        // 钩子方法，用于在线程池真正关闭前回调
                         terminated();
                     } finally {
                         ctl.set(ctlOf(TERMINATED, 0));
@@ -814,120 +826,23 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
         }
     }
 
-    // Public constructors and methods
-
-    /**
-     * Creates a new {@code ThreadPoolExecutor} with the given initial
-     * parameters and default thread factory and rejected execution handler.
-     * It may be more convenient to use one of the {@link Executors} factory
-     * methods instead of this general purpose constructor.
-     *
-     * @param corePoolSize    the number of threads to keep in the pool, even
-     *                        if they are idle, unless {@code allowCoreThreadTimeOut} is set
-     * @param maximumPoolSize the maximum number of threads to allow in the
-     *                        pool
-     * @param keepAliveTime   when the number of threads is greater than
-     *                        the core, this is the maximum time that excess idle threads
-     *                        will wait for new tasks before terminating.
-     * @param unit            the time unit for the {@code keepAliveTime} argument
-     * @param workQueue       the queue to use for holding tasks before they are
-     *                        executed.  This queue will hold only the {@code Runnable}
-     *                        tasks submitted by the {@code execute} method.
-     * @throws IllegalArgumentException if one of the following holds:<br>
-     *                                  {@code corePoolSize < 0}<br>
-     *                                  {@code keepAliveTime < 0}<br>
-     *                                  {@code maximumPoolSize <= 0}<br>
-     *                                  {@code maximumPoolSize < corePoolSize}
-     * @throws NullPointerException     if {@code workQueue} is null
-     */
     public ThreadPoolExecutor4SourceCode(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
         this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, Executors.defaultThreadFactory(), defaultHandler);
     }
 
-    /**
-     * Creates a new {@code ThreadPoolExecutor} with the given initial
-     * parameters and default rejected execution handler.
-     *
-     * @param corePoolSize    the number of threads to keep in the pool, even
-     *                        if they are idle, unless {@code allowCoreThreadTimeOut} is set
-     * @param maximumPoolSize the maximum number of threads to allow in the
-     *                        pool
-     * @param keepAliveTime   when the number of threads is greater than
-     *                        the core, this is the maximum time that excess idle threads
-     *                        will wait for new tasks before terminating.
-     * @param unit            the time unit for the {@code keepAliveTime} argument
-     * @param workQueue       the queue to use for holding tasks before they are
-     *                        executed.  This queue will hold only the {@code Runnable}
-     *                        tasks submitted by the {@code execute} method.
-     * @param threadFactory   the factory to use when the executor
-     *                        creates a new thread
-     * @throws IllegalArgumentException if one of the following holds:<br>
-     *                                  {@code corePoolSize < 0}<br>
-     *                                  {@code keepAliveTime < 0}<br>
-     *                                  {@code maximumPoolSize <= 0}<br>
-     *                                  {@code maximumPoolSize < corePoolSize}
-     * @throws NullPointerException     if {@code workQueue}
-     *                                  or {@code threadFactory} is null
-     */
     public ThreadPoolExecutor4SourceCode(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory) {
         this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, defaultHandler);
     }
 
-    /**
-     * Creates a new {@code ThreadPoolExecutor} with the given initial
-     * parameters and default thread factory.
-     *
-     * @param corePoolSize    the number of threads to keep in the pool, even
-     *                        if they are idle, unless {@code allowCoreThreadTimeOut} is set
-     * @param maximumPoolSize the maximum number of threads to allow in the
-     *                        pool
-     * @param keepAliveTime   when the number of threads is greater than
-     *                        the core, this is the maximum time that excess idle threads
-     *                        will wait for new tasks before terminating.
-     * @param unit            the time unit for the {@code keepAliveTime} argument
-     * @param workQueue       the queue to use for holding tasks before they are
-     *                        executed.  This queue will hold only the {@code Runnable}
-     *                        tasks submitted by the {@code execute} method.
-     * @param handler         the handler to use when execution is blocked
-     *                        because the thread bounds and queue capacities are reached
-     * @throws IllegalArgumentException if one of the following holds:<br>
-     *                                  {@code corePoolSize < 0}<br>
-     *                                  {@code keepAliveTime < 0}<br>
-     *                                  {@code maximumPoolSize <= 0}<br>
-     *                                  {@code maximumPoolSize < corePoolSize}
-     * @throws NullPointerException     if {@code workQueue}
-     *                                  or {@code handler} is null
-     */
     public ThreadPoolExecutor4SourceCode(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, RejectedExecutionHandler4SourceCode handler) {
         this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, Executors.defaultThreadFactory(), handler);
     }
 
     /**
-     * Creates a new {@code ThreadPoolExecutor} with the given initial
-     * parameters.
+     * 构造方法，只是做了赋值
+     *      核心线程数、最大线程数、非核心线程最大存活时间、存活时间单位、阻塞队列、线程工厂、拒绝策略
      *
-     * @param corePoolSize    the number of threads to keep in the pool, even
-     *                        if they are idle, unless {@code allowCoreThreadTimeOut} is set
-     * @param maximumPoolSize the maximum number of threads to allow in the
-     *                        pool
-     * @param keepAliveTime   when the number of threads is greater than
-     *                        the core, this is the maximum time that excess idle threads
-     *                        will wait for new tasks before terminating.
-     * @param unit            the time unit for the {@code keepAliveTime} argument
-     * @param workQueue       the queue to use for holding tasks before they are
-     *                        executed.  This queue will hold only the {@code Runnable}
-     *                        tasks submitted by the {@code execute} method.
-     * @param threadFactory   the factory to use when the executor
-     *                        creates a new thread
-     * @param handler         the handler to use when execution is blocked
-     *                        because the thread bounds and queue capacities are reached
-     * @throws IllegalArgumentException if one of the following holds:<br>
-     *                                  {@code corePoolSize < 0}<br>
-     *                                  {@code keepAliveTime < 0}<br>
-     *                                  {@code maximumPoolSize <= 0}<br>
-     *                                  {@code maximumPoolSize < corePoolSize}
-     * @throws NullPointerException     if {@code workQueue}
-     *                                  or {@code threadFactory} or {@code handler} is null
+     * 在Tomcat源码中也定义了一个线程池，在这个构造方法中调用了{@link #prestartAllCoreThreads()}
      */
     public ThreadPoolExecutor4SourceCode(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, RejectedExecutionHandler4SourceCode handler) {
         if (corePoolSize < 0 || maximumPoolSize <= 0 || maximumPoolSize < corePoolSize || keepAliveTime < 0)
@@ -943,7 +858,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
     }
 
     /**
-     *
+     * 【核心方法】
      */
     public void execute(Runnable command) {
         if (command == null) throw new NullPointerException();
@@ -957,15 +872,26 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
          * 3.如果我们无法对任务进行排队，那么我们尝试添加一个新线程。如果它失败了，我们知道我们被关闭或饱和，所以拒绝这项任务。
          */
         int c = ctl.get();
+
+        // 这里只判断了线程的当前线程数是否小于核心线程数，也就是【不管当前核心线程是否空闲，都会创建核心线程去执行】
         if (workerCountOf(c) < corePoolSize) {
             if (addWorker(command, true)) return;
             c = ctl.get();
         }
+
+        // 如果线程池是运行状态 就将任务添加到队列中
         if (isRunning(c) && workQueue.offer(command)) {
             int recheck = ctl.get();
-            if (!isRunning(recheck) && remove(command)) reject(command);
-            else if (workerCountOf(recheck) == 0) addWorker(null, false);
-        } else if (!addWorker(command, false)) reject(command);
+
+            // 再次检查，如果线程池不再运行，就将任务移除，并且执行拒绝策略
+            if (!isRunning(recheck) && remove(command))
+                reject(command);
+            else if (workerCountOf(recheck) == 0)
+                addWorker(null, false);
+
+            // 当往队列中offer失败了，就会尝试新增线程。这里新增的就是非核心线程
+        } else if (!addWorker(command, false))
+            reject(command);
     }
 
     /**
@@ -1187,11 +1113,8 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
     }
 
     /**
-     * Starts all core threads, causing them to idly wait for work. This
-     * overrides the default policy of starting core threads only when
-     * new tasks are executed.
-     *
-     * @return the number of threads started
+     * 启动所有核心线程，导致它们空闲等待工作。这会覆盖仅在执行新任务时启动核心线程的默认策略。
+     * 在Tomcat中自己搞了一个线程池，其中构造方法调用了这个方法
      */
     public int prestartAllCoreThreads() {
         int n = 0;
@@ -1200,36 +1123,14 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
     }
 
     /**
-     * Returns true if this pool allows core threads to time out and
-     * terminate if no tasks arrive within the keepAlive time, being
-     * replaced if needed when new tasks arrive. When true, the same
-     * keep-alive policy applying to non-core threads applies also to
-     * core threads. When false (the default), core threads are never
-     * terminated due to lack of incoming tasks.
-     *
-     * @return {@code true} if core threads are allowed to time out,
-     * else {@code false}
-     * @since 1.6
+     * 是否允许核心线程超时
      */
     public boolean allowsCoreThreadTimeOut() {
         return allowCoreThreadTimeOut;
     }
 
     /**
-     * Sets the policy governing whether core threads may time out and
-     * terminate if no tasks arrive within the keep-alive time, being
-     * replaced if needed when new tasks arrive. When false, core
-     * threads are never terminated due to lack of incoming
-     * tasks. When true, the same keep-alive policy applying to
-     * non-core threads applies also to core threads. To avoid
-     * continual thread replacement, the keep-alive time must be
-     * greater than zero when setting {@code true}. This method
-     * should in general be called before the pool is actively used.
-     *
-     * @param value {@code true} if should time out, else {@code false}
-     * @throws IllegalArgumentException if value is {@code true}
-     *                                  and the current keep-alive time is not greater than zero
-     * @since 1.6
+     * 核心线程超时时间（如果允许超时的话）
      */
     public void allowCoreThreadTimeOut(boolean value) {
         if (value && keepAliveTime <= 0)
