@@ -21,6 +21,7 @@ public class ThreadPoolExecutor4SourceCode extends AbstractExecutorService {
 
     /**
      * 001 000....000 1000: 前三位表示线程池状态，后29位表示线程数量
+     * 默认状态为RUNNING，线程数为0
      */
     private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));
 
